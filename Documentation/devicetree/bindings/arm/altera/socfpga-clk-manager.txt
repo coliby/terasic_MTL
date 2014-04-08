@@ -1,0 +1,15 @@
+Altera SOCFPGA Clock Manager
+
+Required properties:
+- compatible : "altr,clk-mgr"
+<<<<<<< HEAD
+- reg : Should contain base address and length for Clock Manager
+=======
+- reg : Should contain 1 register ranges(address and length)
+>>>>>>> FogBugz #106533: Add clock entries into device tree file.
+
+Example:
+	 clkmgr@ffd04000 {
+		compatible = "altr,clk-mgr";
+		reg = <0xffd04000 0x1000>;
+	};

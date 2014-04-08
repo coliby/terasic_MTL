@@ -1,0 +1,176 @@
+/*
+ *  Copyright (C) 2012 Altera Corporation <www.altera.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/dts-v1/;
+/include/ "socfpga.dtsi"
+
+/ {
+	model = "Altera SOCFPGA Cyclone V";
+	compatible = "altr,socfpga-cyclone5", "altr,socfpga";
+
+	chosen {
+		bootargs = "console=ttyS0,115200 root=/dev/mmcblk0p2 rw rootwait";
+	};
+
+	memory {
+		name = "memory";
+		device_type = "memory";
+		reg = <0x0 0x40000000>; /* 1 GB */
+	};
+
+	aliases {
+		/* this allow the ethaddr uboot environmnet variable contents
+		 * to be added to the gmac1 device tree blob.
+		 */
+		ethernet0 = &gmac1;
+	};
+
+	soc {
+		clkmgr@ffd04000 {
+			clocks {
+				osc1 {
+					clock-frequency = <25000000>;
+				};
+			};
+		};
+
+		dcan0: d_can@ffc00000 {
+			status = "okay";
+		};
+
+		dwmmc0@ff704000 {
+			num-slots = <1>;
+			supports-highspeed;
+			broken-cd;
+			altr,dw-mshc-ciu-div = <3>;
+			altr,dw-mshc-sdr-timing = <0 3>;
+
+			slot@0 {
+				reg = <0>;
+				bus-width = <4>;
+			};
+		};
+		hps_0_h2f_lw: bridge@0xff200000 {
+			compatible = "altr,h2f_lw_bridge-1.0", "simple-bus";
+			reg = < 0xFF200000 0x00200000 >;
+		 	#address-cells = < 1 >;
+		 	#size-cells = < 1 >;
+		 	ranges = <
+				0x00000200 0xFF200200 0x00000080 
+				0x00000100 0xFF200100 0x00000080 >;
+			 terasic_mtl_touch: tsc@0x200 {
+				compatible = "terasic,mlt_touch_screen";
+				reg = < 0x00000200 0x00000080 >;
+				width_pixel = < 800 >;	
+				height_pixel = < 480 >;
+				interrupts = <0 40 4>;
+			}; //end tsc@0x0200 		
+		 	alt_vip_vfr_1: vip2@0x100 {
+		 		compatible = "ALTR,vip-frame-reader-13.0", "ALTR,vip-frame-reader-9.1";
+		 		reg = < 0x00000100 0x00000080 >;
+		 		max-width = < 800 >;	/* MAX_IMAGE_WIDTH type NUMBER */
+		 		max-height = < 480 >;	/* MAX_IMAGE_HEIGHT type NUMBER */
+		 		mem-word-width = < 256 >;
+		 		bits-per-color = < 8 >;			
+		 	}; //end vip@0x40100 (alt_vip_vfr_0)
+
+		}; //end bridge@0xff200000 (hps_0_h2f_lw)
+		i2c0: i2c@ffc04000 {
+			speed-mode = <0>;
+			status = "okay";
+		};
+	
+		i2c1: i2c@ffc05000 {
+			speed-mode = <0>;
+			status = "okay";
+		};
+		qspi: spi@ff705000 {
+			compatible = "cadence,qspi";
+                        #address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xff705000 0x1000>,
+				<0xffa00000 0x1000>;
+			interrupts = <0 151 4>;
+			master-ref-clk = <400000000>;
+			ext-decoder = <0>;  /* external decoder */
+			num-chipselect = <4>;
+			fifo-depth = <128>;
+			bus-num = <2>;
+
+			flash0: n25q00@0 {
+				#address-cells = <1>;
+				#size-cells = <1>;
+				compatible = "n25q00";
+				reg = <0>;      /* chip select */
+				spi-max-frequency = <100000000>;
+				m25p,fast-read;
+				page-size = <256>;
+				block-size = <16>; /* 2^16, 64KB */
+				read-delay = <4>;  /* delay value in read data capture register */
+				tshsl-ns = <50>;
+				tsd2d-ns = <50>;
+				tchsh-ns = <4>;
+				tslch-ns = <4>;
+
+				partition@qspi-boot {
+					/* 8MB for raw data. */
+					label = "Flash 0 Raw Data";
+					reg = <0x0 0x800000>;
+				};
+				partition@qspi-rootfs {
+					/* 120MB for jffs2 data. */
+					label = "Flash 0 jffs2 Filesystem";
+					reg = <0x800000 0x7800000>;
+				};
+			};
+		};
+
+		serial0@ffc02000 {
+			status = "okay";
+		};
+
+		sysmgr@ffd08000 {
+			cpu1-start-addr = <0xffd080c4>;
+		};
+
+		usb1: usb@ffb40000 {
+			status = "okay";
+		};
+
+		watchdog0: wd@ffd02000 {
+			status = "okay";
+		};
+
+	};
+};
+
+
+&gmac1 {
+	phy-mode = "rgmii";
+	snps,phy-addr = <0xffffffff>; /* probe for phy addr */
+	rxd0-skew-ps = <0>;
+	rxd0-skew-ps = <0>;
+	rxd1-skew-ps = <0>;
+	rxd2-skew-ps = <0>;
+	rxd3-skew-ps = <0>;
+	txen-skew-ps = <0>;
+	txc-skew-ps = <2600>;
+	rxdv-skew-ps = <0>;
+	rxc-skew-ps = <2000>;
+	snps,max-mtu = <3800>;
+	status = "okay";
+};
